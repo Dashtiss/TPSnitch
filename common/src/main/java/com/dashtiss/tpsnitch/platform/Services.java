@@ -1,7 +1,7 @@
-package com.example.examplemod.platform;
+package com.dashtiss.tpsnitch.platform;
 
-import com.example.examplemod.Constants;
-import com.example.examplemod.platform.services.IPlatformHelper;
+import com.dashtiss.tpsnitch.Constants;
+import com.dashtiss.tpsnitch.platform.services.IPlatformHelper;
 
 import java.util.ServiceLoader;
 

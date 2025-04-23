@@ -1,4 +1,4 @@
-package com.example.examplemod.platform.services;
+package com.dashtiss.tpsnitch.platform.services;
 
 public interface IPlatformHelper {
 
