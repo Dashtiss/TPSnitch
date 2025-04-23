@@ -3,10 +3,8 @@ package com.dashtiss.tpsnitch;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.PlayerJoinCallback;
-import net.fabricmc.fabric.api.event.player.PlayerLeaveCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,7 +19,7 @@ public class TPSnitch implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        Constants.LOG.info("Hello Fabric world!");
+        // Constants.LOG.info("Hello Fabric world!");
         CommonClass.init();
 
         // Reset player count on server start
@@ -31,13 +29,13 @@ public class TPSnitch implements ModInitializer {
         });
 
         // Track player join/leave
-        PlayerJoinCallback.EVENT.register((player, server) -> {
-            int count = playerCount.incrementAndGet();
-            if (config.debug) Constants.LOG.info("[TPSnitch] Player joined. Count: " + count);
+        ServerPlayConnectionEvents.JOIN.register((handler, server, player) -> {
+            playerCount.incrementAndGet();
+            if (config.debug) Constants.LOG.info("[TPSnitch] Player joined, player count: " + playerCount.get());
         });
-        PlayerLeaveCallback.EVENT.register((player, server) -> {
-            int count = playerCount.decrementAndGet();
-            if (config.debug) Constants.LOG.info("[TPSnitch] Player left. Count: " + count);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            playerCount.decrementAndGet();
+            if (config.debug) Constants.LOG.info("[TPSnitch] Player left, player count: " + playerCount.get());
         });
 
         // Log TPS, MSPT, player count every interval
@@ -60,7 +58,7 @@ public class TPSnitch implements ModInitializer {
                 for (Map.Entry<String, JsonObject> entry : logs.entrySet()) {
                     fileObj.add(entry.getKey(), entry.getValue());
                 }
-                boolean saved = CommonClass.INSTANCE.saveJson(fileObj.toString(), config.logFileName);
+                boolean saved = new CommonClass().saveJson(fileObj.toString(), config.logFileName);
                 if (config.debug) Constants.LOG.info("[TPSnitch] Log saved: " + saved);
                 lastLogTime = now;
             }
@@ -70,10 +68,9 @@ public class TPSnitch implements ModInitializer {
     // Utility: Get MSPT
     public static double getMSPT(MinecraftServer server) {
         // Vanilla keeps last 100 tick times in server.tickTimes[]
-        long[] tickTimes = server.getTickTimes();
-        long sum = 0;
-        for (long t : tickTimes) sum += t;
-        return sum / (double) tickTimes.length / 1_000_000.0; // ns to ms
+        double tickTimes = server.getAverageTickTimeNanos();
+
+        return tickTimes / 1_000_000.0;
     }
 
     // Utility: Get TPS
