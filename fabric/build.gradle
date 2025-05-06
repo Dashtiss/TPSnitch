@@ -1,6 +1,5 @@
 plugins {
-    id 'multiloader-loader'
-    id 'fabric-loom' version '1.10-SNAPSHOT' // Ensure the correct version of fabric-loom
+    id 'fabric-loom'
 }
 
 java {
@@ -16,13 +15,12 @@ repositories {
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:${minecraft_version}" // Ensure the correct Minecraft version
-    mappings loom.officialMojangMappings() // Use official Mojang mappings
-    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}" // Ensure the correct Fabric Loader version
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}" // Ensure the correct Fabric API version
-    implementation project(':common') // Adding the 'common' module as a dependency
-    implementation project(':common') // Ensure the common module is included
-    // Add any additional dependencies required for remapping
+    implementation project(':common')
+    
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 }
 
 loom {
@@ -36,15 +34,15 @@ loom {
     runs {
         client {
             client()
-            setConfigName('Fabric Client')
+            setConfigName("Fabric Client")
             ideConfigGenerated(true)
-            runDir('runs/client')
+            runDir("run")
         }
         server {
             server()
-            setConfigName('Fabric Server')
+            setConfigName("Fabric Server")
             ideConfigGenerated(true)
-            runDir('runs/server')
+            runDir("run")
         }
     }
 }

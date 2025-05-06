@@ -37,11 +37,3 @@ neoForge {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-
-task moveBuiltFiles(type: Copy) {
-    // Copy all built outputs (jars, etc.) from this module's build/libs to the root build directory
-    from("$buildDir/libs")
-    into("$rootDir/build")
-    include("*.jar")
-}
-build.finalizedBy(moveBuiltFiles)

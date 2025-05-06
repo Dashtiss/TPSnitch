@@ -1,31 +1,6 @@
 plugins {
-    id 'java'
     // see https://fabricmc.net/develop/ for new versions
-    id 'fabric-loom' version '1.10-SNAPSHOT' apply false
+    id 'fabric-loom' version '1.8-SNAPSHOT' apply false
     // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
     id 'net.neoforged.moddev' version '2.0.62-beta' apply false
-
-    id "com.modrinth.minotaur" version "2.+"
-
-}
-
-dependencies {
-    // Removed dependencies as they were moved to the appropriate subproject.
-}
-
-// build.gradle
-modrinth {
-    token = "mrp_sRQ26b9DdHmoNbTGXAWLd5OehqdGGJXoMJT5AEEREZaV0vHlGVdB3VI6nn2d" // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
-    projectId = "R6W27fZZ" // This can be the project ID or the slug. Either will work!
-    versionNumber = "1.1.0" // You don't need to set this manually. Will fail if Modrinth has this version already
-    versionType = "release" // This is the default -- can also be `beta` or `alpha`
-    uploadFile = Jar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.4", "1.21.4"] // Must be an array, even with only one version
-    loaders = ["fabric"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
-    dependencies { // A special DSL for creating dependencies
-        // scope.type
-        // The scope can be `required`, `optional`, `incompatible`, or `embedded`
-        // The type can either be `project` or `version`
-        required.project "fabric-api" // Creates a new required dependency on Fabric API
-    }
 }

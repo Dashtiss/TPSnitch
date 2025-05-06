@@ -10,10 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Map;
 import com.google.gson.JsonObject;
-import com.dashtiss.tpsnitch.common.TPSnitchConfig;
+import com.dashtiss.tpsnitch.TpsnitchConfig;
 
 public class TPSnitch implements ModInitializer {
-    private static TPSnitchConfig config = TPSnitchConfig.get();
+    private static TpsnitchConfig config = TpsnitchConfig.get();
     private static AtomicInteger playerCount = new AtomicInteger(0);
     private static long lastLogTime = 0;
     private static Map<String, JsonObject> logs = new ConcurrentHashMap<>();
