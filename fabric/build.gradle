@@ -1,0 +1,61 @@
+plugins {
+    id 'multiloader-loader'
+    id 'fabric-loom' version '1.10-SNAPSHOT' // Ensure the correct version of fabric-loom
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(23) // Ensure Java 17 is used
+    }
+}
+
+repositories {
+    mavenCentral() // Ensure Maven Central is included
+    maven { url = 'https://maven.fabricmc.net/' } // Add Fabric's Maven repository
+    maven { url = 'https://maven.architectury.dev/' } // Add Architectury's Maven repository
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}" // Ensure the correct Minecraft version
+    mappings loom.officialMojangMappings() // Use official Mojang mappings
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}" // Ensure the correct Fabric Loader version
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}" // Ensure the correct Fabric API version
+    implementation project(':common') // Adding the 'common' module as a dependency
+    implementation project(':common') // Ensure the common module is included
+    // Add any additional dependencies required for remapping
+}
+
+loom {
+    mixin {
+        defaultRefmapName = "${mod_id}.refmap.json" // Ensure mixin remap type is properly configured
+    }
+    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
+    }
+    runs {
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir('runs/client')
+        }
+        server {
+            server()
+            setConfigName('Fabric Server')
+            ideConfigGenerated(true)
+            runDir('runs/server')
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Ensure proper encoding
+}
+
+task moveBuiltFiles(type: Copy) {
+    from("$buildDir/libs")
+    into("$rootDir/build")
+    include("*.jar")
+}
+build.finalizedBy(moveBuiltFiles)

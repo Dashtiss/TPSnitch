@@ -1,0 +1,58 @@
+package com.dashtiss.tpsnitch;
+
+import com.dashtiss.tpsnitch.platform.Services;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.Items;
+
+/**
+ * CommonClass is shared between all supported loaders.
+ * Place cross-platform logic here. Avoid loader-specific imports.
+ */
+public class CommonClass {
+
+    /**
+     * Initialize common logic. Called by loader-specific entry points.
+     * Logs mod load status and demonstrates cross-platform service use.
+     */
+    public static void init() {
+        // Uncomment for verbose startup logging:
+        // Constants.LOG.info("Hello from Common init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
+        // Constants.LOG.info("The ID for diamonds is {}", BuiltInRegistries.ITEM.getKey(Items.DIAMOND));
+
+        // Check if TPSnitch is loaded using the platform abstraction
+        if (Services.PLATFORM.isModLoaded("tpsnitch")) {
+            Constants.LOG.info("TPSnitch is loaded!");
+        } else {
+            Constants.LOG.warn("TPSnitch is NOT loaded!");
+        }
+    }
+
+    /**
+     * Saves a JSON string to a file, pretty-printing it for readability.
+     * @param json Raw JSON string
+     * @param path Path to write the file
+     * @return true if successful, false otherwise
+     */
+    public boolean saveJson(String json, String path) {
+        try {
+            // Format JSON for readability
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            JsonElement jsonElement = JsonParser.parseString(json);
+            String prettyJson = gson.toJson(jsonElement);
+
+            java.nio.file.Files.write(java.nio.file.Paths.get(path), prettyJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            if (com.dashtiss.tpsnitch.TPSnitchConfig.isDebug()) {
+                Constants.LOG.info("Saved pretty-printed JSON to {}", path);
+            }
+            return true;
+        } catch (Exception e) {
+            Constants.LOG.error("Failed to save JSON to {}: {}", path, e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+}

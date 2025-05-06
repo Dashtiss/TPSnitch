@@ -1,0 +1,31 @@
+package com.dashtiss.tpsnitch.platform;
+
+import com.dashtiss.tpsnitch.platform.services.IPlatformHelper;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLLoader;
+
+/**
+ * Forge-specific implementation of IPlatformHelper for TPSnitch.
+ */
+public class ForgePlatformHelper implements IPlatformHelper {
+    /** Default constructor. */
+    public ForgePlatformHelper() {}
+
+    @Override
+    public String getPlatformName() {
+
+        return "Forge";
+    }
+
+    @Override
+    public boolean isModLoaded(String modId) {
+
+        return ModList.get().isLoaded(modId);
+    }
+
+    @Override
+    public boolean isDevelopmentEnvironment() {
+
+        return !FMLLoader.isProduction();
+    }
+}
