@@ -2,12 +2,6 @@ plugins {
     id 'fabric-loom'
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(23) // Ensure Java 17 is used
-    }
-}
-
 repositories {
     mavenCentral() // Ensure Maven Central is included
     maven { url = 'https://maven.fabricmc.net/' } // Add Fabric's Maven repository

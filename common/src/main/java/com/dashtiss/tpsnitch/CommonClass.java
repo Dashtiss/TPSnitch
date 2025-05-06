@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
  * Shared logic for TPSnitch across all supported loaders.
  * Place cross-platform logic here.
  */
-public class CommonClass {
+public final class CommonClass {
 
     /**
      * Initialize common logic. Called by loader-specific entry points.
