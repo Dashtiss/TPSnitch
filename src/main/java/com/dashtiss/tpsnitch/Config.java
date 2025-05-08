@@ -26,7 +26,7 @@ public class Config extends MidnightConfig{
             name = "LogToFile",
             category = LOGS
     )
-    public static boolean LogToFile = false;
+    public static boolean LogToFile = true;
 
     @Entry
     public static String LogFileName = "tpsnitch.log";
@@ -35,5 +35,5 @@ public class Config extends MidnightConfig{
             name = "LogFilePath"
     )
     @Comment(name="The path to the log file")
-    public static String LogFilePath = "logs/";
+    public static String LogFilePath = "JsonLogs/";
 }
