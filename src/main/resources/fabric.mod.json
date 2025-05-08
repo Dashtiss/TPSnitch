@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tpsnitch",
+  "version": "${version}",
+  "name": "TPSnitch",
+  "description": "A TPS, MSPT and Player Tracker",
+  "authors": ["Dashtiss"],
+  "contact": {},
+  "license": "CC0 1.0 Universal",
+  "icon": "assets/tpsnitch/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.dashtiss.tpsnitch.Tpsnitch"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
