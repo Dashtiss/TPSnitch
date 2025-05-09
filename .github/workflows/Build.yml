@@ -1,5 +1,5 @@
 # This workflow builds and tests a Gradle project and uploads build artifacts.
-name: Gradle Build and Test
+name: Build Mod
 
 # Controls when the workflow will run
 on:
@@ -38,7 +38,7 @@ jobs:
       # Executes the Gradle 'build' task. This includes compiling, testing, and packaging.
       # Change 'build' to your specific task if needed (e.g., 'assemble', 'check')
       - name: Build and Test with Gradle
-        run: ./gradlew build
+        run: ./gradlew build --scan
 
       # Uploads the build artifacts from the build/lib directory
       # The path 'build/lib/' might need to be adjusted based on your project structure
@@ -46,5 +46,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Built-Files # The name of the artifact
-          path: build/lib/ # The path to the files you want to upload
+          path: build/libs/ # The path to the files you want to upload
           # retention-days: 5 # Optional: How long to keep the artifact (default is 90 days)
