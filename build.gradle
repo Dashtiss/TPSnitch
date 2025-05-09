@@ -94,14 +94,3 @@ publishing {
         // retrieving dependencies.
     }
 }
-// Replace 'gradleEnterprise' with 'develocity'
-develocity {
-    buildScan {
-        // Replace 'termsOfServiceUrl' with 'termsOfUseUrl'
-        termsOfUseUrl = "https://gradle.com/terms-of-service"
-        // Use 'termsOfUseAccepted' if you need to explicitly accept it programmatically
-        // Note: Often, just setting the termsOfUseUrl is sufficient.
-        termsOfUseAccepted = true
-        // ... other configurations you might have
-    }
-}

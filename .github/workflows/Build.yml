@@ -42,7 +42,7 @@ jobs:
       # Executes the Gradle 'build' task. This includes compiling, testing, and packaging.
       # Change 'build' to your specific task if needed (e.g., 'assemble', 'check')
       - name: Build and Test with Gradle
-        run: ./gradlew build --scan
+        run: ./gradlew build
 
       # Uploads the build artifacts from the build/lib directory
       # The path 'build/lib/' might need to be adjusted based on your project structure
