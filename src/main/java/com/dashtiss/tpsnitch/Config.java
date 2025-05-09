@@ -11,7 +11,7 @@ public class Config extends MidnightConfig{
     public static final String LOGS = "logs";
 
     @Entry(
-            name = "TimeBetweenTicks",
+            name = "Time Between Logs",
             category = LOGS
 
     )
@@ -23,7 +23,7 @@ public class Config extends MidnightConfig{
     public static boolean DebugMode = false;
 
     @Entry(
-            name = "LogToFile",
+            name = "Log To File",
             category = LOGS
     )
     public static boolean LogToFile = true;
@@ -32,8 +32,14 @@ public class Config extends MidnightConfig{
     public static String LogFileName = "tpsnitch.log";
 
     @Entry(
-            name = "LogFilePath"
+            name = "Log File Path"
     )
     @Comment(name="The path to the log file")
     public static String LogFilePath = "JsonLogs/";
+
+    @Entry(
+            name = "Verbose"
+    )
+    @Comment(name="If true, the mod will log all events to the console")
+    public static boolean Verbose = false;
 }
