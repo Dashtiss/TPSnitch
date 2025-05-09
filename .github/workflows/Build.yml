@@ -1,56 +1,52 @@
-name: Build Mods
+# This workflow builds and tests a Gradle project and uploads build artifacts.
+name: Gradle Build and Test
 
+# Controls when the workflow will run
 on:
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ "Fabric-1.21.4" ]
+    branches: [ "Fabric-1.21.5" ]
   pull_request:
-    branches: [ "Fabric-1.21.4" ]
+    branches: [ "Fabric-1.21.5" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  build:
+  # This job builds and tests the project
+  build_and_test:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Checkout repository
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      # Set up JDK 17 (you can change the version if needed)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: 21
+          java-version: '17'
+          distribution: 'temurin' # Or 'adopt', 'zulu', etc.
+          cache: 'gradle' # Cache Gradle dependencies
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      # Set up Gradle for caching (optional but recommended)
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Fabric loader
-        # This command specifically targets the 'build' task within the 'fabric' subproject.
-        run: ./gradlew fabric:build
+      # Executes the Gradle 'build' task. This includes compiling, testing, and packaging.
+      # Change 'build' to your specific task if needed (e.g., 'assemble', 'check')
+      - name: Build and Test with Gradle
+        run: ./gradlew build
 
-      - name: Upload Fabric Artifacts
+      # Uploads the build artifacts from the build/lib directory
+      # The path 'build/lib/' might need to be adjusted based on your project structure
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: built-fabric-mods
-          path: |
-            # Only upload JARs from the fabric build directory
-            fabric/build/libs/*.jar
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Run tests
-        # Note: This command './gradlew test' might still run tests for all subprojects
-        # if your root build.gradle is configured that way.
-        # If you only want to run Fabric-specific tests, you might need to change this
-        # to './gradlew fabric:test' depending on your project structure.
-        run: ./gradlew test
+          name: Built-Files # The name of the artifact
+          path: build/lib/ # The path to the files you want to upload
+          # retention-days: 5 # Optional: How long to keep the artifact (default is 90 days)
