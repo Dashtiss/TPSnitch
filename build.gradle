@@ -93,4 +93,9 @@ publishing {
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
     }
+
+    buildScan {
+        termsOfServiceUrl 'https://gradle.com/terms-of-service' // Replace with the correct URL
+        termsOfServiceAccepted 'true'
+    }
 }
