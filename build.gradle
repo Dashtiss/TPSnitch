@@ -93,9 +93,15 @@ publishing {
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
     }
-
+}
+// Replace 'gradleEnterprise' with 'develocity'
+develocity {
     buildScan {
-        termsOfServiceUrl 'https://gradle.com/terms-of-service' // Replace with the correct URL
-        termsOfServiceAccepted 'true'
+        // Replace 'termsOfServiceUrl' with 'termsOfUseUrl'
+        termsOfUseUrl = "https://gradle.com/terms-of-service"
+        // Use 'termsOfUseAccepted' if you need to explicitly accept it programmatically
+        // Note: Often, just setting the termsOfUseUrl is sufficient.
+        termsOfUseAccepted = true
+        // ... other configurations you might have
     }
 }
