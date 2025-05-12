@@ -18,28 +18,20 @@ public class Config extends MidnightConfig{
     public static int TimeBetweenTicks = 600; // in Ticks, default is 30 seconds. 30*20=600
 
     @Entry(
-            category = LOGS
-    )
-    public static boolean DebugMode = false;
-
-    @Entry(
-            name = "Log To File",
-            category = LOGS
-    )
-    public static boolean LogToFile = true;
-
-    @Entry
-    public static String LogFileName = "tpsnitch.log";
-
-    @Entry(
             name = "Log File Path"
     )
-    @Comment(name="The path to the log file")
-    public static String LogFilePath = "JsonLogs/";
+    @Comment(name="The name of the log file")
+    public static String LogFilePath = "TPSLogs.json";
 
     @Entry(
             name = "Verbose"
     )
     @Comment(name="If true, the mod will log all events to the console")
     public static boolean Verbose = false;
+
+    @Entry(
+            name = "Max Logs",
+            category = LOGS
+    )
+    public static int MaxLogs = 100; // Maximum number of logs to keep
 }

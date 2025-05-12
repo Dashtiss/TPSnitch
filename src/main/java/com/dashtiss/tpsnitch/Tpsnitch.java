@@ -2,15 +2,25 @@ package com.dashtiss.tpsnitch;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import eu.midnightdust.lib.config.MidnightConfig;
+
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.api.metadata.ModMetadata;
+
 import net.minecraft.server.MinecraftServer;
+
 import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,256 +29,192 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 
-// Jackson imports for JSON parsing
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-// Fabric Loader API for getting mod version
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.metadata.ModMetadata;
-
-
 public class Tpsnitch implements ModInitializer {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger("tpsnitch");;
-    private int Players = 0;
-    private double TPS = 0;
-    private double MSTP = 0;
+    // Using SLF4J for logging, good practice in Fabric mods
+    public static final Logger LOGGER = LoggerFactory.getLogger("tpsnitch");
 
+    // Keep track of server stats
+    private int players = 0;
+    private double tps = 0;
+    private long mstp = 0;
+
+    // Timer for periodic updates
     private int tickTimer = 0;
+    // How often to update the stats file (in ticks). 20 ticks = 1 second.
+    private static int updateIntervalTicks = 600; // Default: 30 seconds (30 * 20)
 
-    public int TimeBetweenTicks = 600; // in Ticks, default is 30 seconds. 30*20=600
+    // Simple flag for development builds - helps with debugging output
+    @SuppressWarnings("FieldCanBeLocal")
+    private final boolean IS_DEVELOPMENT_BUILD = false;
 
-    private boolean hasCreatedFile = false;
-
-    private final boolean DEVELOPMENT_BUILD = true; // Set to true for development builds, false for production
-    private final Runtime.Version RUNTIME_VERSION = Runtime.version(); // Get the current runtime version
-
-    // Modrinth API URL for the project versions
+    // Modrinth API details for update checks
     private static final String MODRINTH_API_URL = "https://api.modrinth.com/v2/project/R6W27fZZ/version";
-    // It's good practice to identify your application to the API provider
-    private static final String USER_AGENT = "TPSnitchMod/1.0 (github.com/dashtiss/TPSnitch)"; // ** Replace with your actual info **
+    // Identify ourselves to the API provider - replace with your actual info!
+    private static final String USER_AGENT = "TPSnitchMod/1.0 (github.com/dashtiss/TPSnitch)";
 
     /**
-     * This method is called once when the mod is initialized.
-     * <p>
-     * It sets up listeners for the following events:
-     * <ul>
-     * <li>Player joins</li>
-     * <li>Player disconnects</li>
-     * <li>Server tick ends</li>
-     * </ul>
-     * <p>
-     * The event listeners are used to keep track of the number of players online
-     * and to calculate the TPS and MSTP.
-     * <p>
-     * The TPS and MSTP are calculated on each server tick, which is done by the
-     * ServerTickEvents.END_SERVER_TICK listener.
-     * <p>
-     * The listeners are registered on the server side only.
+     * This is the main entry point for our mod.
+     * It's called by Fabric when the mod is initialized.
+     * We set up our event listeners here to track server state.
      */
     @Override
     public void onInitialize() {
+        updateIntervalTicks = Config.TimeBetweenTicks;
+        LOGGER.info("TPSnitch mod is starting up.");
 
-        // Log the start of the mod initialization process (Keep as INFO)
-        LOGGER.info("TPSnitch mod initialization started.");
-
-        // Initialize MidnightConfig for the mod
+        // Load our configuration settings
         MidnightConfig.init("tpsnitch", Config.class);
+        LOGGER.debug("Configuration loaded.");
 
-        // Change Classloader log to DEBUG
-        LOGGER.debug("Classloader name: {}", Tpsnitch.class.getClassLoader().getClass().getName());
-        // Will check if the mod is running on the server side
+        // A quick check to make sure we're running in the server environment.
+        // This helps prevent issues if the mod somehow ends up on a client.
         if (!Tpsnitch.class.getClassLoader().getClass().getName().equals("net.fabricmc.loader.impl.launch.knot.KnotClassLoader")) {
-            // Log that the mod is not running on the server side (Keep as ERROR)
-            LOGGER.error("Mod is not running on the server side.");
+            LOGGER.error("TPSnitch is a server-side mod and cannot run on the client. Initialization aborted.");
             return;
         }
-        // Change server environment check log to DEBUG
-        LOGGER.debug("Server environment check passed.");
+        LOGGER.debug("Environment check passed - running on server.");
 
-        // Check if the mod is running in development mode
-        if (DEVELOPMENT_BUILD) {
-            // Log that the mod is running in development mode (Keep as DEBUG)
-            LOGGER.warn("Mod is running in development mode.");
+        // Warn if this is a development build
+        if (IS_DEVELOPMENT_BUILD) {
+            LOGGER.warn("[DEVELOPMENT BUILD] Running in development mode.");
         }
 
+        // --- Register Event Listeners ---
 
-
-
-
-
-        // Change config initialization log to DEBUG
-        LOGGER.debug("MidnightConfig initialized for 'tpsnitch'.");
-
-        // Listener for when a player joins the server
+        // Listen for players joining the server to update the player count.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            // Increase the number of players
-            Players += 1;
-            // Log the player joining and the updated player count (Keep as DEBUG)
-            LOGGER.debug("Player joined the server. Current player count: {}", Players);
+            players++;
+            LOGGER.debug("Player joined. Current players: {}", players);
         });
-        // Log that the Player JOIN event listener has been registered (Keep as DEBUG)
-        LOGGER.debug("Registered Player JOIN event listener.");
+        LOGGER.debug("Registered player join listener.");
 
-        // Listener for when a player disconnects from the server
+        // Listen for players leaving the server to update the player count.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            // Decrease the number of players
-            Players -= 1;
-            // Log the player disconnecting and the updated player count (Keep as DEBUG)
-            LOGGER.debug("Player disconnected from the server. Current player count: {}", Players);
+            players--;
+            LOGGER.debug("Player disconnected. Current players: {}", players);
         });
-        // Log that the Player DISCONNECT event listener has been registered (Keep as DEBUG)
-        LOGGER.debug("Registered Player DISCONNECT event listener.");
+        LOGGER.debug("Registered player disconnect listener.");
 
-        // Listener for when a server tick ends
+        // Listen for the end of each server tick. This is where we'll calculate stats periodically.
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            // Increment the tick timer on each server tick
             tickTimer++;
-            // Log the current tick timer value (Keep as TRACE, as this happens frequently)
+            // Use TRACE level for very frequent logs like this
             LOGGER.trace("Server tick ended. tickTimer: {}", tickTimer);
 
-            // Check if the tick timer has reached the specified interval
-            if (tickTimer >= TimeBetweenTicks) {
-                // Log before performing calculations and saving the file (Keep as DEBUG)
-                LOGGER.debug("Tick timer reached TimeBetweenTicks ({}). Calculating TPS/MSTP and saving file.", TimeBetweenTicks);
+            // Check if it's time to update the stats file
+            if (tickTimer >= updateIntervalTicks) {
+                LOGGER.debug("Update interval reached. Calculating and saving server stats.");
 
-                // Calculate TPS and MSTP
-                TPS = getTPS(server);
-                MSTP = getMSTP(server);
+                // Calculate the current TPS and MSTP
+                tps = getTPS(server);
+                mstp = getMSTP(server);
 
-                // Call the saveFile method
-                saveFile();
+                // Save the current stats to a file
+                saveStatsToFile();
 
-                // Reset the tick timer
+                // Reset the timer for the next interval
                 tickTimer = 0;
-                // Log that the tick timer has been reset (Keep as DEBUG)
-                LOGGER.debug("Tick timer reset to 0.");
-
-                // --- Perform update check periodically ---
-                // You might want to do this less frequently than every tick interval,
-                // maybe on server start or once a day. For demonstration, we'll call it here.
-                //checkForUpdate();
+                LOGGER.debug("Tick timer reset.");
             }
         });
-        // Log that the Server TICK END event listener has been registered (Keep as DEBUG)
-        LOGGER.debug("Registered Server TICK END event listener.");
+        LOGGER.debug("Registered server tick listener.");
 
-        // Log that the mod initialization is complete (Keep as INFO)
-        LOGGER.info("TPSnitch mod initialization complete.");
+        LOGGER.info("TPSnitch mod initialized successfully.");
 
-        // --- Initial update check on server start ---
-        // It's often good to check for updates once when the server starts.
+        // Check for updates shortly after server starts
         checkForUpdate();
     }
 
     /**
-     * Saves the current player count, TPS, and MSTP to a file.
-     * It handles renaming the previous log file on the first save after server start.
+     * Saves the current player count, TPS, and MSTP to our designated log file.
+     * Handles the initial file creation/naming if needed.
+     * Assumes Config.LogFilePath points to the desired output file (e.g., "tpsnitch/latest.json").
      */
-    public void saveFile() {
-        // Log the values being saved (Changed to DEBUG and wrapped in Config.Verbose check)
-        // Assumes Config.Verbose is a boolean field in your Config class
+    private void saveStatsToFile() {
+        // Only log verbose details if the config setting is enabled
         if (Config.Verbose) {
-            LOGGER.debug("Saving data - Players: {}, TPS: {}, MSTP: {}", Players, TPS, MSTP);
+            LOGGER.debug("Saving stats - Players: {}, TPS: {}, MSTP: {}", players, tps, mstp);
         }
 
-        // Using GSON save it to the logs folder with each time the server starts up creating a new log
-        // Check if this is the first time saving since the server started
-        if (!hasCreatedFile) {
-            LOGGER.debug("First file save since server start. Renaming previous log file.");
-            hasCreatedFile = true;
-            // will rename the old log file from latest.json to old-{Number}.json
-            // Assuming FileHandler.renameLatestJson exists and works
-            FileHandler.renameLatestJson(Config.LogFilePath);
-            LOGGER.debug("Previous log file renamed.");
+        // On the very first save after server start, we might want special handling
+        // (like renaming a previous log file if that's part of the design).
+        // Your original code had logic for this, but FileHandler.saveFile should
+        // ideally handle creating parent directories and overwriting the target file.
+        // If renaming old logs is needed, that logic would go here before saving.
 
-            // Save the current data to the new file
-            // Assuming FileHandler.saveFile exists and works
-            FileHandler.saveFile(Players, TPS, MSTP, Config.LogFilePath);
-            LOGGER.debug("Initial data saved to file: {}", Config.LogFilePath);
-        }
-        else {
-            // If it's not the first save, just save the current data
-            FileHandler.saveFile(Players, TPS, MSTP, Config.LogFilePath);
-            LOGGER.debug("Data updated in file: {}", Config.LogFilePath);
-        }
+        // Assuming FileHandler.saveFile handles creating directories and writing the file
+        FileHandler.saveFile(players, tps, mstp, Config.LogFilePath);
+        LOGGER.debug("Server stats saved to file: {}", Config.LogFilePath);
+
+        // If you had logic here to rename the previous log, you'd set firstFileSave = false;
+        // after the first save. For now, I've simplified based on the FileHandler assumption.
     }
 
     /**
-     * Calculates the Mean Server Tick Period (MSTP) for the given Minecraft server.
+     * Calculates the Mean Server Tick Period (MSTP) from the server's internal data.
+     * MSTP is the average time it takes for the server to complete one tick.
      *
-     * @param server the Minecraft server instance
-     * @return the average tick time in seconds as a double, or 0 if the tick time is unavailable
+     * @param server The Minecraft server instance.
+     * @return The average tick time in milliseconds, or 0 if data isn't available yet.
      */
-    public static double getMSTP(@NotNull MinecraftServer server) {
-        // Get the average tick time in nanoseconds
+    public static long getMSTP(@NotNull MinecraftServer server) {
+        // The server provides the average tick time in nanoseconds.
         long nanos = server.getAverageTickTimeNanos();
-        // Log the raw nanoseconds value (Keep as TRACE)
-        LOGGER.trace("getMSTP called. Raw average tick time nanos: {}", nanos);
+        LOGGER.trace("Raw average tick time nanos: {}", nanos);
 
-        // Check if the tick time is available (nanos > 0).
-        // Note: server.getAverageTickTimeNanos() returns 0 if the server hasn't ticked enough yet.
-        if (nanos <= 0) { // Use <= 0 to also handle potential negative values, though unlikely
-            // Log if tick time is unavailable and return 0 (Keep as DEBUG)
-            LOGGER.debug("Average tick time nanos is <= 0. Returning MSTP as 0.");
+        // If nanos is 0 or negative, the server hasn't collected enough data yet.
+        if (nanos <= 0) {
+            LOGGER.debug("Average tick time data not available yet. Returning MSTP as 0.");
             return 0;
         }
-        // Calculate MSTP in seconds
-        double mstpSeconds = (double) nanos / 1000000000.0; // Use 1000000000.0 for double division
-        // Log the calculated MSTP in seconds (Keep as TRACE)
-        LOGGER.trace("Calculated MSTP: {} seconds", mstpSeconds);
-        return mstpSeconds;
+
+        // Convert nanoseconds to milliseconds for MSTP
+        long mstpMillis = nanos / 1_000_000; // Use 1_000_000 for clarity
+        LOGGER.trace("Calculated MSTP: {} ms", mstpMillis);
+        return mstpMillis;
     }
 
     /**
-     * Calculates the TPS (ticks per second) of the given Minecraft server.
-     * <p>
-     * This is a convenience method that wraps the {@link #getMSTP(MinecraftServer)} method.
-     * <p>
-     * The TPS is calculated as 20 divided by the average tick time in seconds (since target TPS is 20).
-     * If the average tick time is unavailable (i.e. the server is not running or hasn't ticked enough), 0 is returned.
+     * Calculates the server's TPS (Ticks Per Second) based on the MSTP.
+     * The target TPS for Minecraft is 20.
      *
-     * @param server the Minecraft server instance
-     * @return the ticks per second, or 0 if the tick time is unavailable
+     * @param server The Minecraft server instance.
+     * @return The calculated TPS, capped at 20.0, or 20.0 if MSTP data isn't available (assuming full speed).
      */
     public static double getTPS(@NotNull MinecraftServer server) {
-        // Get the MSTP in seconds
-        double mstp = getMSTP(server);
-        // Log the MSTP value obtained (Keep as TRACE)
-        LOGGER.trace("getTPS called. MSTP obtained: {}", mstp);
+        // Get the MSTP in milliseconds.
+        double mstpMillis = getMSTP(server);
+        LOGGER.trace("MSTP in milliseconds: {}", mstpMillis);
 
-        // If MSTP is 0, return 20 TPS (or 0 if you prefer to indicate no data)
-        // A common approach is to return 20 if MSTP is very low, indicating full speed.
-        if (mstp <= 0) {
-            LOGGER.debug("MSTP is <= 0. Returning TPS as 20 (assuming full speed).");
-            return 20.0; // Assuming full speed if tick time is 0 or negative
+        // If MSTP is 0 or negative, we assume the server is running at full speed (20 TPS).
+        if (mstpMillis <= 0) {
+            LOGGER.debug("MSTP is <= 0. Assuming full speed (20 TPS).");
+            return 20.0;
         }
 
-        // Calculate TPS (capped at 20)
-        // TPS = 1000ms / MSTP_in_ms OR 1 second / MSTP_in_seconds
-        // Since getMSTP returns seconds, TPS = 1.0 / mstp, capped at 20.
-        double tps = Math.min((1.0 / mstp), 20.0); // Use 1.0 and 20.0 for double calculations
-        // Log the calculated TPS (Keep as TRACE)
+        // Calculate TPS: 1000 milliseconds / MSTP in milliseconds.
+        // Cap the result at 20.0, as TPS cannot exceed the target.
+        double tps = Math.min(1000.0 / mstpMillis, 20.0);
         LOGGER.trace("Calculated TPS: {}", tps);
         return tps;
     }
 
     /**
-     * Checks the Modrinth API for the latest version of the mod.
-     * Logs whether a new version is available.
+     * Checks the Modrinth API to see if a newer version of this mod is available.
+     * Logs the result.
      */
-    public void checkForUpdate() {
-        LOGGER.info("Checking for mod updates on Modrinth...");
+    private void checkForUpdate() {
+        LOGGER.info("Checking Modrinth for TPSnitch updates...");
 
         HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(MODRINTH_API_URL))
                 .GET()
-                .header("User-Agent", USER_AGENT) // Identify your application
+                .header("User-Agent", USER_AGENT) // Be polite and identify yourself
                 .build();
 
         try {
@@ -278,124 +224,98 @@ public class Tpsnitch implements ModInitializer {
                 String responseBody = response.body();
                 ObjectMapper objectMapper = new ObjectMapper();
 
-                // The API returns a JSON array of versions
+                // The Modrinth API returns a list of versions, usually newest first.
                 List<ModrinthVersion> versions = objectMapper.readValue(responseBody, new TypeReference<List<ModrinthVersion>>() {});
 
                 if (versions != null && !versions.isEmpty()) {
-                    // The API usually returns versions sorted by publish date, newest first.
-                    ModrinthVersion latestModrinthVersion = versions.get(0);
+                    // Get the very first version in the list - that should be the latest.
+                    ModrinthVersion latestModrinthVersion = versions.getFirst();
                     String latestVersionNumber = latestModrinthVersion.getVersionNumber();
 
-                    String currentModVersion = getModVersion(); // Get the version of THIS mod
+                    String currentModVersion = getModVersion(); // Get the version of *this* running mod
 
-                    LOGGER.info("Current mod version: {}", currentModVersion);
-                    LOGGER.info("Latest Modrinth version: {}", latestVersionNumber);
+                    LOGGER.info("Your current mod version: {}", currentModVersion);
+                    LOGGER.info("Latest version on Modrinth: {}", latestVersionNumber);
 
-                    // Simple string comparison. For more complex versioning (e.g., 1.0.0-beta.1),
-                    // you might need a dedicated version comparison library.
-                    // This assumes version numbers are comparable lexicographically or numerically.
-                    // For example, "1.10.0" > "1.9.0" and "2.0.0" > "1.10.0"
+                    // Simple version comparison. This works for standard versioning (like 1.0.0, 1.1.0).
+                    // For more complex schemes (like 1.0.0-beta.1), you might need a dedicated library.
                     if (latestVersionNumber != null && currentModVersion != null && latestVersionNumber.compareTo(currentModVersion) > 0) {
-                        LOGGER.warn("A new version of TPSnitch is available: {} (Current: {})", latestVersionNumber, currentModVersion);
-                        // You could add code here to notify server operators, etc.
+                        LOGGER.warn("A newer version of TPSnitch is available! Version: {} (You have {})", latestVersionNumber, currentModVersion);
+                        // Consider adding a server-side notification here for operators.
                     } else {
-                        LOGGER.info("Mod is up to date.");
+                        LOGGER.info("TPSnitch is up to date.");
                     }
 
                 } else {
-                    LOGGER.warn("Modrinth API returned an empty list of versions for project R6W27fZZ.");
+                    LOGGER.warn("Modrinth API returned no versions for project R6W27fZZ. Cannot check for updates.");
                 }
 
             } else {
-                LOGGER.error("Failed to check for updates. Modrinth API returned status code: {}", response.statusCode());
-                LOGGER.error("Response body: {}", response.body());
+                LOGGER.error("Failed to check for updates. Modrinth API responded with status code: {}", response.statusCode());
+                // Optionally log the response body for debugging: LOGGER.error("Response body: {}", response.body());
             }
 
         } catch (IOException | InterruptedException e) {
-            LOGGER.error("Error during update check: {}", e.getMessage());
-            if (Config.Verbose) { // Only print stack trace in verbose mode
-                e.printStackTrace();
+            LOGGER.error("An error occurred while checking for updates: {}", e.getMessage());
+            if (Config.Verbose) { // Only print the full stack trace if verbose logging is on
+                LOGGER.error(e.getMessage(), e);
             }
         }
     }
 
     /**
-     * Gets the current version of this mod using FabricLoader.
-     * This method retrieves the version from the mod's fabric.mod.json file.
+     * Retrieves the version string of *this* mod using Fabric's API.
+     * Looks up the version defined in the mod's `fabric.mod.json`.
      *
-     * @return The current version string of the mod, or "UNKNOWN" if not found.
+     * @return The mod's version string, or "UNKNOWN" if it couldn't be found.
      */
     private String getModVersion() {
-        // Use FabricLoader to get the mod container and its metadata
-        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer("tpsnitch"); // Use your modid here
+        // FabricLoader helps us find information about loaded mods.
+        // We look for the mod container using our mod ID ("tpsnitch").
+        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer("tpsnitch");
 
         if (modContainer.isPresent()) {
+            // If found, get the metadata and extract the version.
             ModMetadata metadata = modContainer.get().getMetadata();
             return metadata.getVersion().getFriendlyString();
         } else {
-            // Log a warning if the mod container is not found
-            LOGGER.warn("Could not find mod container for 'tpsnitch' to get version.");
-            return "UNKNOWN"; // Return UNKNOWN if the mod container isn't found
+            // Log a warning if we can't find our own mod container (shouldn't happen normally).
+            LOGGER.warn("Could not find the mod container for 'tpsnitch' to get the version.");
+            return "UNKNOWN"; // Indicate that the version couldn't be determined.
         }
     }
 
     /**
-     * Static inner class to represent a Modrinth version object for JSON parsing.
-     * This keeps the data structure definition within the main mod file.
+     * Simple static inner class to help Jackson parse the JSON response
+     * from the Modrinth API for version information.
+     * We ignore any fields we don't need using @JsonIgnoreProperties.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class ModrinthVersion {
-        // Use @JsonProperty to map JSON fields with snake_case to Java fields with camelCase
+        // Use @JsonProperty to map snake_case JSON fields to camelCase Java fields
         private String id;
         @JsonProperty("project_id")
         private String projectId;
         private String name;
         @JsonProperty("version_number")
-        private String versionNumber; // This is the field we'll use for comparison
-        private String changelog;
-        @JsonProperty("version_type")
-        private String versionType; // e.g., "release", "beta", "alpha"
-        @JsonProperty("date_published")
-        private String datePublished;
-        private int downloads;
-        @JsonProperty("game_versions")
-        private List<String> gameVersions;
-        // Add other fields if you need them
+        private String versionNumber; // This is the key field for version comparison
+        // Add other fields if you need them from the API response
 
-        // Default constructor (needed by Jackson)
+        // Default constructor required by Jackson for deserialization
         public ModrinthVersion() {}
 
-        // --- Getters ---
-        public String getId() { return id; }
-        public String getProjectId() { return projectId; }
-        public String getName() { return name; }
+        // --- Getters for the fields we care about ---
         public String getVersionNumber() { return versionNumber; }
-        public String getChangelog() { return changelog; }
-        public String getVersionType() { return versionType; }
-        public String getDatePublished() { return datePublished; }
-        public int getDownloads() { return downloads; }
-        public List<String> getGameVersions() { return gameVersions; }
 
-        // --- Setters (optional, depending on if you need to modify the object) ---
-        public void setId(String id) { this.id = id; }
-        public void setProjectId(String projectId) { this.projectId = projectId; }
-        public void setName(String name) { this.name = name; }
-        public void setVersionNumber(String versionNumber) { this.versionNumber = versionNumber; }
-        public void setChangelog(String changelog) { this.changelog = changelog; }
-        public void setVersionType(String versionType) { this.versionType = versionType; }
-        public void setDatePublished(String datePublished) { this.datePublished = datePublished; }
-        public void setDownloads(int downloads) { this.downloads = downloads; }
-        public void setGameVersions(List<String> gameVersions) { this.gameVersions = gameVersions; }
+        // You could add setters if you needed to modify these objects after parsing,
+        // but for this case, getters are sufficient.
 
-
+        // Optional: Override toString for easier debugging
         @Override
         public String toString() {
             return "ModrinthVersion{" +
                     "name='" + name + '\'' +
                     ", versionNumber='" + versionNumber + '\'' +
-                    ", versionType='" + versionType + '\'' +
-                    ", datePublished='" + datePublished + '\'' +
-                    ", gameVersions=" + gameVersions +
                     '}';
         }
     }

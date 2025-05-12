@@ -34,7 +34,7 @@ dependencies {
 
     modImplementation include ("maven.modrinth:midnightlib:${project.midnightlib_version}")
 
-    implementation 'com.google.code.gson:gson:2.13.1'
+    implementation "com.google.code.gson:gson:${project.gson_version}"
 }
 
 processResources {
@@ -111,7 +111,7 @@ modrinth {
         // The scope can be `required`, `optional`, `incompatible`, or `embedded`
         // The type can either be `project` or `version`
         required.project "fabric-api" // Creates a new required dependency on Fabric API
-        optional.project "midnightlib" // Creates a new optional dependency on MidnightLib
+        required.project "midnightlib" // Creates a new optional dependency on MidnightLib
     }
 
     syncBodyFrom = rootProject.file("README.md").text
