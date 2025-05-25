@@ -7,7 +7,7 @@ TPSnitch is a Fabric Minecraft server utility mod for monitoring server performa
 - Configurable log interval, debug mode, and log file name
 - Player count tracked via join/leave events
 - Utility functions for retrieving TPS and MSPT from the server object
-- Supports Fabric, NeoForge, and Forge loaders
+- Supports Fabric
 
 ## Output Format
 The log file is a JSON object where each key is an ISO timestamp, and each value is an object of `TPS`, `MSTP` and `Player Count`:
