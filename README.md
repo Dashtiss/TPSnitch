@@ -1,6 +1,6 @@
 # TPSnitch
 
-TPSnitch is a cross-loader Minecraft server utility mod for monitoring server performance. It automatically logs TPS (Ticks Per Second), MSPT (Milliseconds Per Tick), and player count at configurable intervals to a JSON file, making it easy to analyze server health over time.
+TPSnitch is a Fabric Minecraft server utility mod for monitoring server performance. It automatically logs TPS (Ticks Per Second), MSPT (Milliseconds Per Tick), and player count at configurable intervals to a JSON file, making it easy to analyze server health over time.
 
 ## Features
 - Logs TPS, MSPT, and player count to a JSON file keyed by timestamp
@@ -24,7 +24,7 @@ The log file is a JSON object where each key is an ISO timestamp, and each value
 
 ## Getting Started
 1. Requires Java 21
-2. Download the correct jar for your loader (Fabric, NeoForge, or Forge)
+2. Download the latest jar file
 3. Place the jar in your server's `mods` folder
 4. Start your server
 
