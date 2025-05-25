@@ -33,7 +33,7 @@ The log file is a JSON object where each key is an ISO timestamp, and each value
 - Logs are saved to a JSON file (default: `tpsnitch_log.json`)
 
 ## License
-MIT
+Apache 2.0
 
 ---
 
