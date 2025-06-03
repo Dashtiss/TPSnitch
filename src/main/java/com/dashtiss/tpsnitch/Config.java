@@ -6,9 +6,10 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Config extends MidnightConfig{
+public class Config extends MidnightConfig {
 
     public static final String LOGS = "logs";
+    public static final String UPDATES = "updates";
 
     @Entry(
             name = "Time Between Logs",
@@ -34,4 +35,11 @@ public class Config extends MidnightConfig{
             category = LOGS
     )
     public static int MaxLogs = 100; // Maximum number of logs to keep
+
+    @Entry(
+            name = "Auto Update",
+            category = UPDATES
+    )
+    @Comment(name="If true, the mod will automatically download and install updates when a new version is found at startup")
+    public static boolean AutoUpdate = false;
 }
