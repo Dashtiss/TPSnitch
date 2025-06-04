@@ -59,6 +59,7 @@ public class Tpsnitch implements ModInitializer {
     // Store this mod's container for later use
     private ModContainer modContainer;
 
+
     /**
      * This is the main entry point for our mod.
      * It's called by Fabric when the mod is initialized.
@@ -81,7 +82,7 @@ public class Tpsnitch implements ModInitializer {
             LOGGER.error("Could not find TPSnitch mod container!");
             return;
         }
-
+        
         // A quick check to make sure we're running in the server environment.
         // This helps prevent issues if the mod somehow ends up on a client.
         if (!Tpsnitch.class.getClassLoader().getClass().getName().equals("net.fabricmc.loader.impl.launch.knot.KnotClassLoader")) {
@@ -252,43 +253,22 @@ public class Tpsnitch implements ModInitializer {
                     return;
                 }
 
-                // Create a backup of the current jar
-                File backupJar = new File(currentJar.getParentFile(), "TPSnitch-backup.jar");
-                Files.copy(currentJar.toPath(), backupJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                // Schedule the update for when server stops
-                Thread updateThread = new Thread(() -> {
-                    try {
-                        // Wait a moment to ensure server is fully stopped
-                        Thread.sleep(1000);
-                        
-                        // Replace the current jar with the update
-                        Files.move(tempFile, currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        
-                        LOGGER.info("Update installed successfully! The new version will be loaded when the server next starts.");
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to install update: {}", e.getMessage());
-                        if (Config.Verbose) {
-                            LOGGER.error("Full stack trace:", e);
-                        }
-                        // Try to restore from backup
-                        try {
-                            Files.move(backupJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                            LOGGER.info("Restored from backup after failed update");
-                        } catch (IOException restoreError) {
-                            LOGGER.error("Failed to restore from backup: {}", restoreError.getMessage());
-                        }
+                try {
+                    // First replace the current jar file to ensure smooth update
+                    Files.move(tempFile, currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Then rename it to include the version number
+                    String newFileName = String.format("TPSnitch-Fabric-%s.jar", version);
+                    File versionedJar = new File(currentJar.getParentFile(), newFileName);
+                    Files.move(currentJar.toPath(), versionedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    
+                    LOGGER.info("Update installed successfully! File renamed to: {}", newFileName);
+                    LOGGER.warn("Please restart your server for the update to take effect.");
+                } catch (Exception e) {
+                    LOGGER.error("Failed to install update: {}", e.getMessage());
+                    if (Config.Verbose) {
+                        LOGGER.error("Full stack trace:", e);
                     }
-                });
-                updateThread.setDaemon(true);                // Save all worlds and restart
-                if (server != null) {
-                    LOGGER.info("Saving worlds before applying update...");
-                    server.saveEverything(true, false, true);  // Save everything, don't flush, show progress
-                    updateThread.start();
-                    LOGGER.info("Restarting server to apply update...");
-                    server.halt(true);
-                } else {
-                    LOGGER.error("Cannot restart server - server instance not available");
                 }
             } else {
                 LOGGER.error("Failed to download update - server returned status code: {}", response.statusCode());
